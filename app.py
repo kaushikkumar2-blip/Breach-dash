@@ -70,8 +70,7 @@ with st.sidebar:
 df = df_raw[
     df_raw['week_num_in_year'].isin(sel_weeks) &
     df_raw['dh_name'].isin(sel_dh) &
-    df_raw['seller_type'].isin(sel_seller) 
-].copy()
+    df_raw['seller_type'].isin(sel_seller)].copy()
 
 if df.empty:
     st.warning("No data matches the selected filters.")
