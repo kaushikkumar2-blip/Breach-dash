@@ -25,36 +25,31 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ── Data Loading from GitHub ─────────────────────────────────────────────────
-
-# IMPORTANT: Replace this URL with the "Raw" URL of your CSV on GitHub
-GITHUB_CSV_URL = "https://raw.githubusercontent.com/YourUsername/YourRepo/main/your_data.csv"
-
+# ── Data Loading ─────────────────────────────────────────────────────────────
 @st.cache_data
-def load_data(url: str) -> pd.DataFrame:
-    # Pandas reads directly from the web URL
-    df = pd.read_csv(url)
-    
-    # Process dates
+def load_data(path: str) -> pd.DataFrame:
+    df = pd.read_csv(path)
     df['shipped_lpd_date_key'] = pd.to_datetime(
         df['shipped_lpd_date_key'].astype(str), format='%Y%m%d'
     )
-    
     # Safe breach %
     df['overall_breach_percent'] = np.where(
         df['Breach_Den'] > 0,
         df['Breach_Num'] / df['Breach_Den'],
         np.nan
     )
-    
     return df
 
-# Initialize the data
-try:
-    df = load_data(GITHUB_CSV_URL)
-    # st.success("Data successfully loaded from GitHub!") # Optional: for testing
-except Exception as e:
-    st.error(f"Failed to load data from GitHub. Please check the URL. Error: {e}")
+# ── File uploader / default path ─────────────────────────────────────────────
+st.markdown('<p class="main-header">📦 Shipment Breach Performance Dashboard</p>',
+            unsafe_allow_html=True)
+
+uploaded = st.file_uploader("Upload your CSV file", type="csv")
+if uploaded:
+    df_raw = load_data(uploaded)
+else:
+    st.info("Upload a CSV to begin. Showing sample structure below.")
+    st.stop()
 # ── Sidebar Filters ───────────────────────────────────────────────────────────
 with st.sidebar:
     st.header("🔍 Filters")
@@ -68,15 +63,14 @@ with st.sidebar:
     seller_types = sorted(df_raw['seller_type'].dropna().unique())
     sel_seller = st.multiselect("Seller Type", seller_types, default=seller_types)
 
-    pincodes = sorted(df_raw['dest_pincode'].dropna().unique())
-    sel_pin = st.multiselect("Pincode", pincodes, default=pincodes)
+    # pincodes = sorted(df_raw['dest_pincode'].dropna().unique())
+    # sel_pin = st.multiselect("Pincode", pincodes, default=pincodes)
 
 # Apply filters
 df = df_raw[
     df_raw['week_num_in_year'].isin(sel_weeks) &
     df_raw['dh_name'].isin(sel_dh) &
     df_raw['seller_type'].isin(sel_seller) &
-    df_raw['dest_pincode'].isin(sel_pin)
 ].copy()
 
 if df.empty:
